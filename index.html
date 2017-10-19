@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>test</title>
+    <style type="text/css">
+        canvas{margin: 100px;border:0px solid #f0f;box-sizing: border-box;}
+    </style>
+
+</head>
+<body>
+    <script type="text/javascript">
+        const SOCKET_CNT = 4
+        const CORE_PER_SOCKET = 1
+        const SIZE_PER_SOCKET = 120
+        const GRID_LINE_WIDTH = 1
+        const GRID_LINE_COLOR = '#666'
+        const GRID_MAP = {
+            "1" : 1,
+            "2" : 2,
+            "4" : 2,
+            "8" : 4,
+            "16" : 4,
+            "32" : 8
+        }
+
+        const numa_task_list = [
+        {id: '1', name: 'mcf',      recv_time: '09:00:00', start_time: '09:00:00', end_time: '09:04:26', socket_id: "1", core_id: "1"},
+        {id: '2', name: 'milc',     recv_time: '09:00:00', start_time: '09:00:20', end_time: '09:07:48', socket_id: "3", core_id: "1"},
+        {id: '3', name: 'leslie3d', recv_time: '09:00:00', start_time: '09:00:40', end_time: '09:06:11', socket_id: "2", core_id: "1"},
+        {id: '4', name: 'namd',     recv_time: '09:00:00', start_time: '09:01:00', end_time: '09:08:37', socket_id: "4", core_id: "1"},
+        {id: '5', name: 'bzip2',    recv_time: '09:00:00', start_time: '09:04:26', end_time: '09:14:48', socket_id: "1", core_id: "1"},
+        {id: '6', name: 'gobmk',    recv_time: '09:00:00', start_time: '09:06:11', end_time: '09:15:51', socket_id: "2", core_id: "1"},
+        ]
+
+        const mcore_task_list = [
+        {id: '1', name: 'mcf',      recv_time: '09:00:00', start_time: '09:00:00', end_time: '09:04:46', socket_id: "1", core_id: "1"},
+        {id: '2', name: 'milc',     recv_time: '09:00:00', start_time: '09:00:20', end_time: '09:08:28', socket_id: "2", core_id: "1"},
+        {id: '3', name: 'leslie3d', recv_time: '09:00:00', start_time: '09:00:40', end_time: '09:06:07', socket_id: "3", core_id: "1"},
+        {id: '4', name: 'namd',     recv_time: '09:00:00', start_time: '09:01:00', end_time: '09:08:37', socket_id: "4", core_id: "1"},
+        {id: '5', name: 'bzip2',    recv_time: '09:00:00', start_time: '09:04:46', end_time: '09:15:06', socket_id: "1", core_id: "1"},
+        {id: '6', name: 'gobmk',    recv_time: '09:00:00', start_time: '09:06:07', end_time: '09:15:56', socket_id: "3", core_id: "1"},
+        ]
+
+
+        const log = console.log
+        const cvs = document.createElement('canvas')
+        cvs.id='canvas'
+        // cols
+        const cols = GRID_MAP[SOCKET_CNT]
+        const rows = SOCKET_CNT / cols
+        const cvsWidth = cvs.width = cols * SIZE_PER_SOCKET + (cols + 1) * GRID_LINE_WIDTH
+        const cvsHeight = cvs.height = cvs.width
+
+        document.body.appendChild(cvs)
+        const ctx = cvs.getContext('2d')
+        ctx.lineWidth = GRID_LINE_WIDTH
+
+        function draw_gridline() {
+            ctx.save()
+            ctx.strokeStyle = GRID_LINE_COLOR
+            ctx.strokeRect(0, 0, cvsWidth, cvsHeight)
+            ctx.restore()
+        }
+
+        function repaint() {
+            ctx.clearRect(0, 0, cvsWidth, cvsHeight)
+            draw_gridline()
+        }
+        repaint()
+    </script>
+</body>
+</html>

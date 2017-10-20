@@ -11,9 +11,9 @@
     <script type="text/javascript">
         const SOCKET_CNT = 4
         const CORE_PER_SOCKET = 1
-        const SIZE_PER_SOCKET = 120
+        const SIZE_PER_SOCKET = 100
         const GRID_LINE_WIDTH = 1
-        const GRID_LINE_COLOR = '#666'
+        const GRID_LINE_COLOR = '#999'
         const GRID_MAP = {
             "1" : 1,
             "2" : 2,
@@ -58,8 +58,30 @@
         function draw_gridline() {
             ctx.save()
             ctx.strokeStyle = GRID_LINE_COLOR
-            ctx.strokeRect(0, 0, cvsWidth, cvsHeight)
+            
+            // draw ver lines
+            for (let i=0;i<cvsWidth;i+=(SIZE_PER_SOCKET+GRID_LINE_WIDTH))
+            {
+                ctx.moveTo(i+0.5, 0)
+                ctx.lineTo(i+0.5, cvsHeight)
+                ctx.stroke()
+            }
+
+            
+            // draw hoz lines
+            for (let i=0;i<cvsHeight;i+=(SIZE_PER_SOCKET+GRID_LINE_WIDTH))
+            {
+                ctx.moveTo(0, i+0.5)
+                ctx.lineTo(cvsHeight, i+0.5)
+                ctx.stroke()
+            }
+
             ctx.restore()
+
+            // ctx.save()
+            // ctx.strokeStyle = "#0ff"
+            // ctx.strokeRect(0, 0, cvsWidth, cvsHeight)
+            // ctx.restore()
         }
 
         function repaint() {

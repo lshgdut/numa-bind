@@ -41,6 +41,39 @@
         {id: '6', name: 'gobmk',    recv_time: '09:00:00', start_time: '09:06:07', end_time: '09:15:56', socket_id: "3", core_id: "1"},
         ]
 
+        class Task{
+            constructor(ctx, cfg){
+                cfg = cfg || {}
+                this.x = cfg.x
+                this.y = cfg.y
+                this.size = cfg.size
+                this.core_id = cfg.core_id
+                this.socket_id = cfg.socket_id
+                this.id = cfg.id
+                this.name = cfg.name
+                this.color = this._gen_color()
+                this.recv_time = this._convert_time(cfg.recv_time)
+                this.start_time = this._convert_time(cfg.start_time)
+                this.end_time = this._convert_time(cfg.end_time)
+
+                this.ctx = ctx
+            }
+
+            _convert_time(time){
+                return time
+            }
+
+            _gen_color(){
+                return '#' + Math.floor(Math.random()*16777215).toString(16)
+            }
+
+            draw(){
+                this.ctx.save()
+
+                this.ctx.restore()
+            }
+
+        }
 
         const log = console.log
         const cvs = document.createElement('canvas')
@@ -55,26 +88,34 @@
         const ctx = cvs.getContext('2d')
         ctx.lineWidth = GRID_LINE_WIDTH
 
+        const each_ctx_rows = (fn) => {
+            for (let i=0;i<cvsHeight;i+=(SIZE_PER_SOCKET+GRID_LINE_WIDTH)) {
+                fn(i + 0.5)
+            }
+        }
+        const each_ctx_cols = (fn) => {
+            for (let i=0;i<cvsWidth;i+=(SIZE_PER_SOCKET+GRID_LINE_WIDTH)) {
+                fn(i + 0.5)
+            }
+        }
+
         function draw_gridline() {
             ctx.save()
             ctx.strokeStyle = GRID_LINE_COLOR
             
             // draw ver lines
-            for (let i=0;i<cvsWidth;i+=(SIZE_PER_SOCKET+GRID_LINE_WIDTH))
-            {
-                ctx.moveTo(i+0.5, 0)
-                ctx.lineTo(i+0.5, cvsHeight)
+            each_ctx_cols((i) => {
+                ctx.moveTo(i, 0)
+                ctx.lineTo(i, cvsHeight)
                 ctx.stroke()
-            }
+            })
 
-            
             // draw hoz lines
-            for (let i=0;i<cvsHeight;i+=(SIZE_PER_SOCKET+GRID_LINE_WIDTH))
-            {
-                ctx.moveTo(0, i+0.5)
-                ctx.lineTo(cvsHeight, i+0.5)
+            each_ctx_rows((i) => {
+                ctx.moveTo(0, i)
+                ctx.lineTo(cvsHeight, i)
                 ctx.stroke()
-            }
+            })
 
             ctx.restore()
 

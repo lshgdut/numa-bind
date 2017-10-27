@@ -41,14 +41,28 @@
         {id: '6', name: 'gobmk',    recv_time: '09:00:00', start_time: '09:06:07', end_time: '09:15:56', socket_id: "3", core_id: "1"},
         ]
 
+        const log = console.log
+        const cvs = document.createElement('canvas')
+        cvs.id='canvas'
+        // cols
+        const cols = GRID_MAP[SOCKET_CNT]
+        const rows = SOCKET_CNT / cols
+        const cvsWidth = cvs.width = cols * SIZE_PER_SOCKET + (cols + 1) * GRID_LINE_WIDTH
+        const cvsHeight = cvs.height = cvs.width
+
+        document.body.appendChild(cvs)
+        const ctx = cvs.getContext('2d')
+        ctx.lineWidth = GRID_LINE_WIDTH
+
+
         class Task{
             constructor(ctx, cfg){
                 cfg = cfg || {}
-                this.x = cfg.x
-                this.y = cfg.y
-                this.size = cfg.size
-                this.core_id = cfg.core_id
-                this.socket_id = cfg.socket_id
+                // this.x = cfg.x
+                // this.y = cfg.y
+                // this.size = cfg.size
+                this.core_id = cfg.core_id * 1
+                this.socket_id = cfg.socket_id * 1
                 this.id = cfg.id
                 this.name = cfg.name
                 this.color = this._gen_color()
@@ -57,6 +71,16 @@
                 this.end_time = this._convert_time(cfg.end_time)
 
                 this.ctx = ctx
+            }
+
+            getXY() {
+                let colIndex = this.socket_id % rows
+                x = colIndex * GRID_LINE_WIDTH + (colIndex - 1) * SIZE_PER_SOCKET
+
+                let rowIndex = this.socket_id % cols
+                y = rowIndex * GRID_LINE_WIDTH + (rowIndex - 1) * SIZE_PER_SOCKET
+
+                return x, y
             }
 
             _convert_time(time){
@@ -75,19 +99,6 @@
 
         }
 
-        const log = console.log
-        const cvs = document.createElement('canvas')
-        cvs.id='canvas'
-        // cols
-        const cols = GRID_MAP[SOCKET_CNT]
-        const rows = SOCKET_CNT / cols
-        const cvsWidth = cvs.width = cols * SIZE_PER_SOCKET + (cols + 1) * GRID_LINE_WIDTH
-        const cvsHeight = cvs.height = cvs.width
-
-        document.body.appendChild(cvs)
-        const ctx = cvs.getContext('2d')
-        ctx.lineWidth = GRID_LINE_WIDTH
-
         const each_ctx_rows = (fn) => {
             for (let i=0;i<cvsHeight;i+=(SIZE_PER_SOCKET+GRID_LINE_WIDTH)) {
                 fn(i + 0.5)
@@ -98,6 +109,12 @@
                 fn(i + 0.5)
             }
         }
+
+        var task_pool = []
+        numa_task_list.forEach((item)=>{
+            let task = new Task(item)
+            task_pool.push(task)
+        })
 
         function draw_gridline() {
             ctx.save()
@@ -118,11 +135,10 @@
             })
 
             ctx.restore()
+        }
 
-            // ctx.save()
-            // ctx.strokeStyle = "#0ff"
-            // ctx.strokeRect(0, 0, cvsWidth, cvsHeight)
-            // ctx.restore()
+        function draw_task() {
+
         }
 
         function repaint() {

@@ -9,6 +9,7 @@
 </head>
 <body>
     <script type="text/javascript">
+        const SPEED_UP = 60
         const SOCKET_CNT = 4
         const CORE_PER_SOCKET = 1
         const SIZE_PER_SOCKET = 100
@@ -22,6 +23,8 @@
             "16" : 4,
             "32" : 8
         }
+
+        COLORS = ['#2f7ed8', '#0d233a', '#8bbc21', '#910000', '#1aadce', '#492970', '#f28f43', '#77a1e5', '#c42525', '#a6c96a']
 
         const numa_task_list = [
         {id: '1', name: 'mcf',      recv_time: '09:00:00', start_time: '09:00:00', end_time: '09:04:26', socket_id: "1", core_id: "1"},
@@ -56,45 +59,73 @@
 
 
         class Task{
-            constructor(ctx, cfg){
+            constructor(ctx, cfg, baseTime){
                 cfg = cfg || {}
                 // this.x = cfg.x
                 // this.y = cfg.y
                 // this.size = cfg.size
+                this.baseTime = baseTime
                 this.core_id = cfg.core_id * 1
                 this.socket_id = cfg.socket_id * 1
                 this.id = cfg.id
                 this.name = cfg.name
                 this.color = this._gen_color()
-                this.recv_time = this._convert_time(cfg.recv_time)
-                this.start_time = this._convert_time(cfg.start_time)
-                this.end_time = this._convert_time(cfg.end_time)
+                this.recv_time = cfg.recv_time
+                this.start_time = cfg.start_time
+                this.end_time = cfg.end_time
 
+                this.colIndex = Math.floor((this.socket_id - 1) / rows)
+                this.rowIndex = (this.socket_id - 1) % cols
+                console.log('%s, %s, %s, %s', this.name, this.colIndex, this.rowIndex, this.socket_id)
                 this.ctx = ctx
             }
 
             getXY() {
-                let colIndex = this.socket_id % rows
-                x = colIndex * GRID_LINE_WIDTH + (colIndex - 1) * SIZE_PER_SOCKET
+                let colIndex = this.colIndex
+                let x = (colIndex + 1) * GRID_LINE_WIDTH + colIndex * this.getSize()
 
-                let rowIndex = this.socket_id % cols
-                y = rowIndex * GRID_LINE_WIDTH + (rowIndex - 1) * SIZE_PER_SOCKET
+                let rowIndex = this.rowIndex
+                let y = (rowIndex + 1) * GRID_LINE_WIDTH + rowIndex * this.getSize()
 
-                return x, y
+                return [x, y]
             }
 
-            _convert_time(time){
-                return time
+            getSize() {
+                return SIZE_PER_SOCKET
             }
 
             _gen_color(){
-                return '#' + Math.floor(Math.random()*16777215).toString(16)
+                return COLORS[ (this.id - 1) % COLORS.length]
+            }
+
+            isExpired() {
+                let now = Date.now() - this.baseTime
+                let isExpired = this.end_time < now
+                return isExpired
+            }
+
+            isRunning() {
+                let now = Date.now() - this.baseTime
+                let isRunning = this.end_time >= now && now >= this.start_time
+                return isRunning
             }
 
             draw(){
+                if (!this.isRunning()) {
+                    return false
+                }
+
                 this.ctx.save()
+                this.ctx.fillStyle = this.color
+
+                let xy = this.getXY()
+                let size = this.getSize()
+                this.ctx.fillRect(xy[0], xy[1], size, size)
 
                 this.ctx.restore()
+
+                // console.log('draw %s at %s', this.name, xy.join(','))
+                return true
             }
 
         }
@@ -110,9 +141,32 @@
             }
         }
 
+        const _convert_time = time => {
+            let times = time.match(/^(\d\d):(\d\d):(\d\d)$/).slice(1,4).map(Number)
+            return (times[0] * 3600 + times[1] * 60 + times[2]) * 1000
+        }
+
+
+        const env_base_time = Date.now()
+
         var task_pool = []
+        var tasks_base_time = Number.MAX_VALUE
         numa_task_list.forEach((item)=>{
-            let task = new Task(item)
+            item.recv_time = _convert_time(item.recv_time)
+            item.start_time = _convert_time(item.start_time)
+            item.end_time = _convert_time(item.end_time)
+
+            tasks_base_time = Math.min(tasks_base_time, item.recv_time)
+        })
+
+        numa_task_list.forEach((item)=>{
+            item.recv_time = Math.ceil((item.recv_time - tasks_base_time) / SPEED_UP)
+            item.start_time = Math.ceil((item.start_time - tasks_base_time) / SPEED_UP)
+            item.end_time = Math.ceil((item.end_time - tasks_base_time) / SPEED_UP)
+        })
+
+        numa_task_list.forEach((item)=>{
+            let task = new Task(ctx, item, env_base_time)
             task_pool.push(task)
         })
 
@@ -137,15 +191,23 @@
             ctx.restore()
         }
 
-        function draw_task() {
+        function draw_tasks() {
+            let a = 1
+            task_pool = task_pool.filter(task => {
+                task.draw()
+                return !task.isExpired()
+            })
 
+            return task_pool.length
         }
 
-        function repaint() {
+        (function repaint() {
             ctx.clearRect(0, 0, cvsWidth, cvsHeight)
             draw_gridline()
-        }
-        repaint()
+            let cont = draw_tasks()
+
+            cont && requestAnimationFrame(repaint)
+        })()
     </script>
 </body>
 </html>

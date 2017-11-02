@@ -2,25 +2,24 @@
 * @Author: lshgdut
 * @Date:   2017-10-31 23:46:35
 * @Last Modified by:   lshgdut
-* @Last Modified time: 2017-11-01 00:01:12
+* @Last Modified time: 2017-11-03 00:16:09
 */
 
 class Task{
     constructor(ctx, cfg, baseTime){
         cfg = cfg || {}
-        this.baseTime = baseTime
-        this.core_id = cfg.core_id * 1
-        this.socket_id = cfg.socket_id * 1
+        this.core = cfg.core * 1
+        this.socket = cfg.socket * 1
         this.id = cfg.id
         this.name = cfg.name
-        this.color = this._gen_color()
+        this.color = this.get_color()
         this.recv_time = cfg.recv_time
         this.start_time = cfg.start_time
         this.end_time = cfg.end_time
 
-        this.colIndex = Math.floor((this.socket_id - 1) / rows)
-        this.rowIndex = (this.socket_id - 1) % cols
-        console.log('%s, %s, %s, %s', this.name, this.colIndex, this.rowIndex, this.socket_id)
+        this.colIndex = Math.floor((this.socket - 1) / rows)
+        this.rowIndex = (this.socket - 1) % cols
+        console.log('%s, %s, %s, %s', this.name, this.colIndex, this.rowIndex, this.socket)
         this.ctx = ctx
     }
 
@@ -35,21 +34,21 @@ class Task{
     }
 
     getSize() {
-        return SIZE_PER_SOCKET
+        return GLOBALS.SIZE_PER_SOCKET
     }
 
-    _gen_color(){
-        return COLORS[ (this.id - 1) % COLORS.length]
+    get_color(){
+        return GLOBALS.COLORS[ (this.id - 1) % GLOBALS.COLORS.length]
     }
 
     isExpired() {
-        let now = Date.now() - this.baseTime
+        let now = Date.now() - GLOBALS.BASE_TIME
         let isExpired = this.end_time < now
         return isExpired
     }
 
     isRunning() {
-        let now = Date.now() - this.baseTime
+        let now = Date.now() - GLOBALS.BASE_TIME
         let isRunning = this.end_time >= now && now >= this.start_time
         return isRunning
     }
@@ -99,7 +98,20 @@ class Host() {
 		this.sockets = cfg.sockets
 		// cpu 核数
 		this.cores = cfg.cores
+
+		this.canvas = null
+		this.ctx = null
 	},
 
-	
+	getContext() {
+		return this.ctx
+	}
+
+	render(node) {
+
+	}
+
+	repaint() {
+
+	}
 }

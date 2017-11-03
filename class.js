@@ -2,11 +2,11 @@
 * @Author: lshgdut
 * @Date:   2017-10-31 23:46:35
 * @Last Modified by:   lshgdut
-* @Last Modified time: 2017-11-03 00:16:09
+* @Last Modified time: 2017-11-03 23:50:06
 */
 
 class Task{
-    constructor(ctx, cfg, baseTime){
+    constructor(ctx, cfg){
         cfg = cfg || {}
         this.core = cfg.core * 1
         this.socket = cfg.socket * 1
@@ -74,17 +74,48 @@ class Task{
 }
 
 class TaskPool() {
-	constructor() {
+	constructor(tasklist) {
 		this.pool = []
+
+        let baseTime = Number.MAX_VALUE
+        tasklist.forEach((x)=>{
+            x.recv_time = utils.convert_time(x.recv_time)
+            x.start_time = utils.convert_time(x.start_time)
+            x.end_time = utils.convert_time(x.end_time)
+
+            baseTime = Math.min(baseTime, x.recv_time)
+        })
+        this.baseTime = baseTime
+
+        tasklist.forEach(task=>{
+            this.addTask(task)
+        })
 	}
 
 	addTask(task) {
-
+        this.pool.push(this.parseTask(task))
 	}
 
-	delTask(task) {
-
+	delTask(id) {
+        this.pool.forEach((task, index) => {
+            if (task.id === id) {
+                this.pool.splice(index, 1)
+                return true
+            }
+        })
 	}
+
+	parseTask (task) {
+        // task = Object.assign({}, task)
+        task.recv_time = this._parseTime(task.recv_time, this.baseTime)
+        task.start_time = this._parseTime(task.start_time, this.baseTime)
+        task.end_time = this._parseTime(task.end_time, this.baseTime)
+        return task
+    }
+
+    _parseTime(time) {
+        return Math.ceil((time - baseTime) / GLOBALS.SPEED_UP)
+    }
 
 	run() {
 
@@ -98,6 +129,8 @@ class Host() {
 		this.sockets = cfg.sockets
 		// cpu 核数
 		this.cores = cfg.cores
+        // 任务池
+        this.taskPool = cfg.pool
 
 		this.canvas = null
 		this.ctx = null
@@ -111,7 +144,45 @@ class Host() {
 
 	}
 
-	repaint() {
+    drawGridLine() {
+        let canvas = this.canvas
+        let ctx = this.ctx
 
+        ctx.save()
+        ctx.strokeStyle = GLOBALS.GRID_LINE_COLOR
+        
+        // draw ver lines
+        utils.each_ctx_cols((i) => {
+            ctx.moveTo(i, 0)
+            ctx.lineTo(i, canvas.height)
+            ctx.stroke()
+        }, ctx)
+
+        // draw hoz lines
+        utils.each_ctx_rows((i) => {
+            ctx.moveTo(0, i)
+            ctx.lineTo(canvas.height, i)
+            ctx.stroke()
+        }, ctx)
+
+        ctx.restore()
+    }
+
+    drawTasks() {
+        task_pool = task_pool.filter(task => {
+            task.draw()
+            return !task.isExpired()
+        })
+
+        return task_pool.length
+    }
+
+	repaint() {
+        let canvas = this.canvas
+        let ctx = this.ctx
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        this.drawGridLine()
+        this.drawTasks()
 	}
 }

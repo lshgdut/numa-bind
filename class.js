@@ -2,7 +2,7 @@
 * @Author: lshgdut
 * @Date:   2017-10-31 23:46:35
 * @Last Modified by:   lshgdut
-* @Last Modified time: 2017-11-03 23:50:06
+* @Last Modified time: 2017-11-05 00:02:43
 */
 
 class Task{
@@ -25,10 +25,10 @@ class Task{
 
     getXY() {
         let colIndex = this.colIndex
-        let x = (colIndex + 1) * GRID_LINE_WIDTH + colIndex * this.getSize()
+        let x = (colIndex + 1) * GLOBALS.GRID_LINE_WIDTH + colIndex * this.getSize()
 
         let rowIndex = this.rowIndex
-        let y = (rowIndex + 1) * GRID_LINE_WIDTH + rowIndex * this.getSize()
+        let y = (rowIndex + 1) * GLOBALS.GRID_LINE_WIDTH + rowIndex * this.getSize()
 
         return [x, y]
     }
@@ -74,8 +74,8 @@ class Task{
 }
 
 class TaskPool() {
-	constructor(tasklist) {
-		this.pool = []
+    constructor(tasklist, host) {
+        this.pool = []
 
         let baseTime = Number.MAX_VALUE
         tasklist.forEach((x)=>{
@@ -90,22 +90,22 @@ class TaskPool() {
         tasklist.forEach(task=>{
             this.addTask(task)
         })
-	}
+    }
 
-	addTask(task) {
+    addTask(task) {
         this.pool.push(this.parseTask(task))
-	}
+    }
 
-	delTask(id) {
+    delTask(id) {
         this.pool.forEach((task, index) => {
             if (task.id === id) {
                 this.pool.splice(index, 1)
                 return true
             }
         })
-	}
+    }
 
-	parseTask (task) {
+    parseTask (task) {
         // task = Object.assign({}, task)
         task.recv_time = this._parseTime(task.recv_time, this.baseTime)
         task.start_time = this._parseTime(task.start_time, this.baseTime)
@@ -117,32 +117,43 @@ class TaskPool() {
         return Math.ceil((time - baseTime) / GLOBALS.SPEED_UP)
     }
 
-	run() {
+    run() {
 
-	}
+    }
 
 }
 
+
 class Host() {
-	constructor(cfg) {
-		// cpu 插槽数
-		this.sockets = cfg.sockets
-		// cpu 核数
-		this.cores = cfg.cores
+    constructor(el, cfg) {
+        this.id = cfg.id
+        // cpu 插槽数
+        this.sockets = cfg.sockets
+        // cpu 核数
+        this.cores = cfg.cores
         // 任务池
         this.taskPool = cfg.pool
 
-		this.canvas = null
-		this.ctx = null
-	},
+        this.render(el)
+    },
 
-	getContext() {
-		return this.ctx
-	}
+    render(el) {
+        let canvas = document.createElement('canvas')
+        let cols = GLOBALS.GRID_MAP[this.sockets]
+        let rows = Math.ceil(this.sockets / cols)
+        let size = cols * GLOBALS.SIZE_PER_SOCKET + (cols+1) * GLOBALS.GRID_LINE_WIDTH
+        canvas.width = canvas.height = size
 
-	render(node) {
+        el.appendChild(canvas)
+        cvs = canvas.getContext('2d')
 
-	}
+        this.canvas = canvas
+        this.cvs = cvs
+    }
+
+    getContext() {
+        return this.ctx
+    }
 
     drawGridLine() {
         let canvas = this.canvas
@@ -177,12 +188,12 @@ class Host() {
         return task_pool.length
     }
 
-	repaint() {
+    repaint() {
         let canvas = this.canvas
         let ctx = this.ctx
 
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         this.drawGridLine()
         this.drawTasks()
-	}
+    }
 }

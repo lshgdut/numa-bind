@@ -2,14 +2,13 @@
 * @Author: lshgdut
 * @Date:   2017-10-31 23:46:35
 * @Last Modified by:   lshgdut
-* @Last Modified time: 2017-11-05 00:02:43
+* @Last Modified time: 2017-11-05 23:23:50
 */
 
 class Task{
-    constructor(ctx, cfg){
+    constructor(cfg){
         cfg = cfg || {}
         this.core = cfg.core * 1
-        this.socket = cfg.socket * 1
         this.id = cfg.id
         this.name = cfg.name
         this.color = this.get_color()
@@ -17,10 +16,9 @@ class Task{
         this.start_time = cfg.start_time
         this.end_time = cfg.end_time
 
-        this.colIndex = Math.floor((this.socket - 1) / rows)
-        this.rowIndex = (this.socket - 1) % cols
-        console.log('%s, %s, %s, %s', this.name, this.colIndex, this.rowIndex, this.socket)
-        this.ctx = ctx
+        this.colIndex = cfg.colIndex
+        this.rowIndex = cfg.rowIndex
+        console.log('%s, %s, %s, %s', this.name, this.colIndex, this.rowIndex, this.core)
     }
 
     getXY() {
@@ -34,7 +32,7 @@ class Task{
     }
 
     getSize() {
-        return GLOBALS.SIZE_PER_SOCKET
+        return GLOBALS.CORE_SIZE
     }
 
     get_color(){
@@ -53,19 +51,19 @@ class Task{
         return isRunning
     }
 
-    draw(){
+    draw(ctx){
         if (!this.isRunning()) {
             return false
         }
 
-        this.ctx.save()
-        this.ctx.fillStyle = this.color
+        ctx.save()
+        ctx.fillStyle = this.color
 
         let xy = this.getXY()
         let size = this.getSize()
-        this.ctx.fillRect(xy[0], xy[1], size, size)
+        ctx.fillRect(xy[0], xy[1], size, size)
 
-        this.ctx.restore()
+        ctx.restore()
 
         // console.log('draw %s at %s', this.name, xy.join(','))
         return true
@@ -73,86 +71,30 @@ class Task{
 
 }
 
-class TaskPool() {
-    constructor(tasklist, host) {
-        this.pool = []
 
-        let baseTime = Number.MAX_VALUE
-        tasklist.forEach((x)=>{
-            x.recv_time = utils.convert_time(x.recv_time)
-            x.start_time = utils.convert_time(x.start_time)
-            x.end_time = utils.convert_time(x.end_time)
-
-            baseTime = Math.min(baseTime, x.recv_time)
-        })
-        this.baseTime = baseTime
-
-        tasklist.forEach(task=>{
-            this.addTask(task)
-        })
-    }
-
-    addTask(task) {
-        this.pool.push(this.parseTask(task))
-    }
-
-    delTask(id) {
-        this.pool.forEach((task, index) => {
-            if (task.id === id) {
-                this.pool.splice(index, 1)
-                return true
-            }
-        })
-    }
-
-    parseTask (task) {
-        // task = Object.assign({}, task)
-        task.recv_time = this._parseTime(task.recv_time, this.baseTime)
-        task.start_time = this._parseTime(task.start_time, this.baseTime)
-        task.end_time = this._parseTime(task.end_time, this.baseTime)
-        return task
-    }
-
-    _parseTime(time) {
-        return Math.ceil((time - baseTime) / GLOBALS.SPEED_UP)
-    }
-
-    run() {
-
-    }
-
-}
-
-
-class Host() {
+class Host{
     constructor(el, cfg) {
         this.id = cfg.id
-        // cpu 插槽数
-        this.sockets = cfg.sockets
         // cpu 核数
         this.cores = cfg.cores
-        // 任务池
-        this.taskPool = cfg.pool
 
         this.render(el)
-    },
+    }
 
     render(el) {
         let canvas = document.createElement('canvas')
-        let cols = GLOBALS.GRID_MAP[this.sockets]
-        let rows = Math.ceil(this.sockets / cols)
-        let size = cols * GLOBALS.SIZE_PER_SOCKET + (cols+1) * GLOBALS.GRID_LINE_WIDTH
+        let cols = GLOBALS.GRID_MAP[this.cores]
+        let rows = Math.ceil(this.cores / cols)
+        let size = cols * GLOBALS.CORE_SIZE + (cols+1) * GLOBALS.GRID_LINE_WIDTH
         canvas.width = canvas.height = size
 
         el.appendChild(canvas)
-        cvs = canvas.getContext('2d')
+        let ctx = canvas.getContext('2d')
 
+        this.cols = cols
+        this.rows = rows
         this.canvas = canvas
-        this.cvs = cvs
-    }
-
-    getContext() {
-        return this.ctx
+        this.ctx = ctx
     }
 
     drawGridLine() {
@@ -179,21 +121,80 @@ class Host() {
         ctx.restore()
     }
 
-    drawTasks() {
-        task_pool = task_pool.filter(task => {
-            task.draw()
-            return !task.isExpired()
-        })
-
-        return task_pool.length
-    }
-
-    repaint() {
+    repaint(taskPool) {
         let canvas = this.canvas
         let ctx = this.ctx
 
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         this.drawGridLine()
-        this.drawTasks()
     }
 }
+
+class TaskPool{
+    constructor(el, tasklist, host) {
+        this.pool = []
+
+        let baseTime = Number.MAX_VALUE
+        tasklist.forEach((x)=>{
+            x.recv_time = utils.convert_time(x.recv_time)
+            x.start_time = utils.convert_time(x.start_time)
+            x.end_time = utils.convert_time(x.end_time)
+
+            baseTime = Math.min(baseTime, x.recv_time)
+        })
+        this.baseTime = baseTime
+
+        this.host = new Host(el, host)
+        tasklist.forEach(task=>{
+            this.addTask(task)
+        })
+    }
+
+    addTask(task) {
+        this.pool.push(this.parseTask(task))
+    }
+
+    delTask(id) {
+        this.pool.forEach((task, index) => {
+            if (task.id === id) {
+                this.pool.splice(index, 1)
+                return true
+            }
+        })
+    }
+
+    parseTask (task) {
+        // task = Object.assign({}, task)
+        task.recv_time = this._parseTime(task.recv_time)
+        task.start_time = this._parseTime(task.start_time)
+        task.end_time = this._parseTime(task.end_time)
+
+        task.rowIndex = (task.core - 1) % this.host.cols
+        task.colIndex = Math.floor((task.core - 1) / this.host.rows)
+        return new Task(task)
+    }
+
+    _parseTime(time) {
+        return Math.ceil((time - this.baseTime) / GLOBALS.SPEED_UP)
+    }
+
+    length() {
+        return this.pool.length
+    }
+
+    run() {
+        this.host.repaint()
+        let pool = this.pool.filter(task=>{
+            task.draw(this.host.ctx)
+            return !task.isExpired()
+        })
+        this.pool = pool
+
+        if (this.length() > 0) {
+            requestAnimationFrame(this.run.bind(this))
+        }
+    }
+
+}
+
+
